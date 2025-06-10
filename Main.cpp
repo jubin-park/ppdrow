@@ -90,7 +90,7 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 		for (uint32_t infoIndex = 0; infoIndex < pFormatJAF->InfoCount; ++infoIndex)
 		{
 			pInfoHeader = (JAFInfoHeader*)offset;
-			printf("\tstrIndex: %3s, frameCount: %3d, code: %X\n", pInfoHeader->ZeroBasedNumStr, pInfoHeader->FrameCount, pInfoHeader->Code);
+			printf("\tinfoIndex: %3s, frameCount: %3d, code: %X\n", pInfoHeader->ZeroBasedNumStr, pInfoHeader->FrameCount, pInfoHeader->Code);
 			offset += sizeof(JAFInfoHeader);
 
 			for (uint32_t sliceIndex = 0; sliceIndex < pInfoHeader->FrameCount; ++sliceIndex)
@@ -111,8 +111,10 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 int main()
 {
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\arrow.jaf");
-	AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3000.jaf");
-	AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+	AnalyzeJAF(L"C:\\wordpp\\ani\\boss\\boss001a.jaf");
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+
 
 	return 0;
 }
