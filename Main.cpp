@@ -180,7 +180,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 		{
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
 
-			printf("[%u]\t%u\t%u\t%u\t%u\t%hu"
+			printf("[%u]\t%u, %u, %u, %u, %hu"
 				"\tW1: %4u, H1: %4u, Words: %4u, W2: %4hu, H2: %4hu (bytes: %hu)\n",
 				infoIndex,
 				pJSFInfoHeader->Unknown11, pJSFInfoHeader->Unknown12, pJSFInfoHeader->Unknown13, pJSFInfoHeader->Unknown14, pJSFInfoHeader->Unknown15,
