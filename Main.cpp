@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <cstdint>
+#include <clocale>
 
 /*
-* struct JafFixedHeader {
+struct JafFixedHeader {
     u8 description[53];
     u8 filename[200];
     u32 count;
@@ -11,9 +12,7 @@
 struct JafDataHeader
 {
     u32 unknown1;
-    u32 unknown2;
-    s8 spacebar;
-    s8 zero_based_index_str[251];  
+    s8 zero_based_index_str[256];
 };
 
 struct JafNumHeader
@@ -26,6 +25,24 @@ struct JafNumHeader
 JafFixedHeader test @ 0x00;
 JafDataHeader test2 @ 257;
 JafNumHeader test3[10] @ 517;
+
+struct JSFFixedHeader {
+    u8 description[50];
+    u8 filename[200];
+    u32 spriteCount;
+    u32 unknown1;
+    u32 unknown2;
+    u32 unknown3;
+    u32 unknown4;
+    u16 unknown5;
+    u32 width1;
+    u32 height1;
+    u32 unknown8;
+    u16 width2;
+    u16 height2;
+};
+
+JSFFixedHeader test @ 0x00;
 */
 
 #pragma pack(1)
@@ -39,9 +56,7 @@ struct JAFFileHeader
 struct JAFInfoHeader
 {
 	uint32_t FrameCount;
-	uint32_t Code;
-	char Spacebar;
-	char ZeroBasedNumStr[251];
+	char TagName[256];
 };
 
 struct JAFFrameHeader
@@ -90,7 +105,7 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 		for (uint32_t infoIndex = 0; infoIndex < pFormatJAF->InfoCount; ++infoIndex)
 		{
 			pInfoHeader = (JAFInfoHeader*)offset;
-			printf("\tinfoIndex: %3s, frameCount: %3d, code: %X\n", pInfoHeader->ZeroBasedNumStr, pInfoHeader->FrameCount, pInfoHeader->Code);
+			printf("\ttag: \"%s\", frameCount: %3d\n", pInfoHeader->TagName, pInfoHeader->FrameCount);
 			offset += sizeof(JAFInfoHeader);
 
 			for (uint32_t sliceIndex = 0; sliceIndex < pInfoHeader->FrameCount; ++sliceIndex)
@@ -110,11 +125,13 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 
 int main()
 {
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\arrow.jaf");
-	AnalyzeJAF(L"C:\\wordpp\\ani\\boss\\boss001a.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+	_wsetlocale(LC_ALL, L"ko-KR");
 
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\arrow.jaf");
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\boss\\boss001a.jaf");
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
+	AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 	return 0;
 }
