@@ -33,11 +33,17 @@ struct JAFFileHeader
 	int8_t FileName[200];
 	uint32_t InfoCount;
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct JAFInfoHeader
 {
 	uint32_t FrameCount;
 	int8_t TagName[256];
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct JAFFrameHeader
 {
 	uint32_t OneBasedNumber;
@@ -54,6 +60,9 @@ struct JSFFileHeader
 	int8_t FileName[200];
 	uint32_t InfoCount;
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct JSFInfoHeader
 {
 	uint32_t Unknown11;
