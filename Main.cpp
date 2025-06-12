@@ -163,6 +163,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	JSFFileHeader* pJSFFileHeader;
 	JSFInfoHeader* pJSFInfoHeader;
 	int8_t* pOffset = 0;
+	int8_t* pEnd = 0;
 
 	do
 	{
@@ -188,6 +189,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
+			pOffset += sizeof(JSFInfoHeader);
+			pEnd = pOffset + pJSFInfoHeader->WordCount * 2;
 
 			printf("[%u]\t%u, %u, %u, %u, %hu"
 				"\tW1: %4u, H1: %4u, Words: %4u, W2: %4hu, H2: %4hu (bytes: %hu)\n",
@@ -197,7 +200,24 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				pJSFInfoHeader->WordCount * 2
 			);
 
-			pOffset += sizeof(JSFInfoHeader) + (pJSFInfoHeader->WordCount * 2);
+			while (pOffset < pEnd)
+			{
+				uint16_t repeatCount = *reinterpret_cast<uint16_t*>(pOffset);
+				pOffset += sizeof(uint16_t);
+				if (repeatCount == 0)
+				{
+					continue;
+				}
+
+				uint16_t byteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+				pOffset += sizeof(uint16_t);
+
+				uint16_t patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+				pOffset += sizeof(uint16_t);
+				pOffset += patternLength;
+
+				printf("\t%hd, %hd, %hd\n", repeatCount, byteCount, patternLength);
+			}
 		}
 
 	} while (0);
