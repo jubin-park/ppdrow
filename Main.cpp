@@ -165,6 +165,10 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	int8_t* pOffset = 0;
 	int8_t* pEnd = 0;
 
+	uint16_t repeatCount;
+	uint16_t allocByte;
+	uint16_t patternLength;
+
 	do
 	{
 		err = _wfopen_s(&pFile, pWszFilePath, L"rb");
@@ -202,21 +206,31 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 			while (pOffset < pEnd)
 			{
-				uint16_t repeatCount = *reinterpret_cast<uint16_t*>(pOffset);
+				repeatCount = *reinterpret_cast<uint16_t*>(pOffset);
 				pOffset += sizeof(uint16_t);
 				if (repeatCount == 0)
 				{
 					continue;
 				}
+				else if (repeatCount == 1)
+				{
+					patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+					pOffset += sizeof(uint16_t);
+					pOffset += patternLength;
 
-				uint16_t byteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
-				pOffset += sizeof(uint16_t);
+					printf("\trepeat: %hu, patternLength: %hu\n", repeatCount, patternLength);
+				}
+				else
+				{
+					allocByte = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+					pOffset += sizeof(uint16_t);
 
-				uint16_t patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
-				pOffset += sizeof(uint16_t);
-				pOffset += patternLength;
+					patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+					pOffset += sizeof(uint16_t);
+					pOffset += patternLength;
 
-				printf("\t%hd, %hd, %hd\n", repeatCount, byteCount, patternLength);
+					printf("\trepeat: %hu, allocByte: %hu, patternLength: %hu\n", repeatCount, allocByte, patternLength);
+				}
 			}
 		}
 
