@@ -168,7 +168,6 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	uint16_t repeatCount;
 	uint16_t startOffset;
 	uint16_t bitmapByteCount;
-	uint32_t sum;
 
 	do
 	{
@@ -193,7 +192,6 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
-			sum = 0;
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
 			pOffset += sizeof(JSFInfoHeader);
 			pEnd = pOffset + pJSFInfoHeader->WordCount * 2;
@@ -253,8 +251,8 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 
-	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
 
 	return 0;
 }
