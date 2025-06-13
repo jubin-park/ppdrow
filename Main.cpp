@@ -193,6 +193,11 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
+			char imgFileName[512];
+			sprintf_s(imgFileName, sizeof(imgFileName), "samples/%s_%02d", pJSFFileHeader->FileName, infoIndex);
+			FILE* pOutput = nullptr;
+			fopen_s(&pOutput, imgFileName, "wb");
+
 			sumBytes = 0;
 
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
@@ -208,6 +213,9 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				pJSFInfoHeader->WordCount * 2
 			);
 
+			fwrite(&pJSFInfoHeader->Width2, 1, sizeof(uint16_t), pOutput);
+			fwrite(&pJSFInfoHeader->Height2, 1, sizeof(uint16_t), pOutput);
+
 			while (pOffset < pEnd)
 			{
 				repeatCount = *reinterpret_cast<uint16_t*>(pOffset);
@@ -219,6 +227,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				else if (repeatCount == 1)
 				{
 					bitmapByteCount = pJSFInfoHeader->Width2 * 2;
+
+					fwrite(pOffset, 1, bitmapByteCount, pOutput);
 					pOffset += bitmapByteCount;
 
 					sumBytes += bitmapByteCount;
@@ -230,11 +240,23 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 					--repeatCount;
 					for (uint16_t repeat = 1; repeat <= repeatCount; ++repeat)
 					{
-						tailOffset = *reinterpret_cast<uint16_t*>(pOffset) * 4;
+						tailOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 						pOffset += sizeof(uint16_t);
 
 						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 						pOffset += sizeof(uint16_t);
+
+						char blank = 192;
+						for (int i = 0; i < tailOffset; ++i)
+						{
+							fwrite(&blank, 1, 1, pOutput);
+						}
+						fwrite(pOffset, 1, bitmapByteCount, pOutput);
+						for (int i = 0; i < tailOffset; ++i)
+						{
+							fwrite(&blank, 1, 1, pOutput);
+						}		
+
 						pOffset += bitmapByteCount;
 
 						sumBytes += bitmapByteCount;
@@ -246,6 +268,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 			}
 
 			printf("sumBytes = %d\n", sumBytes);
+
+			fclose(pOutput);
 		}
 
 	} while (0);
@@ -263,6 +287,7 @@ int main()
 
 
 	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\ui_shop.jsf");
 	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
 
 	return 0;
