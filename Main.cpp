@@ -228,7 +228,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 					pOffset += sizeof(uint16_t);
 					pOffset += bitmapByteCount;
 
-					printf("\trepeat: %hu, startOffset: %hu, bitmapByteCount: %hu\n", repeatCount, startOffset, bitmapByteCount);
+					printf("\trepeat: %hu, startOffset: %hu, bitmapBytes: %hu\n", repeatCount, startOffset, bitmapByteCount);
 				}
 			}
 		}
