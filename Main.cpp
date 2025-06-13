@@ -296,13 +296,13 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn108.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\ui_shop.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\3000\\3000.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\bobj001.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem000.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem001.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\ui_shop.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\3000\\3000.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\bobj001.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem000.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem001.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
 
 	return 0;
 }
