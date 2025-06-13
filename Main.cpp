@@ -223,7 +223,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				}
 				else
 				{
-					for (uint16_t repeat = 1; repeat < repeatCount; ++repeat)
+					--repeatCount;
+					for (uint16_t repeat = 1; repeat <= repeatCount; ++repeat)
 					{
 						startOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 						pOffset += sizeof(uint16_t);
