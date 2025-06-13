@@ -166,8 +166,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	int8_t* pEnd = 0;
 
 	uint16_t repeatCount;
-	uint16_t allocByte;
-	uint16_t patternLength;
+	uint16_t startOffset;
+	uint16_t bitmapByteCount;
 
 	do
 	{
@@ -214,22 +214,21 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				}
 				else if (repeatCount == 1)
 				{
-					patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
-					pOffset += sizeof(uint16_t);
-					pOffset += patternLength;
+					bitmapByteCount = pJSFInfoHeader->Width2 * 2;
+					pOffset += bitmapByteCount;
 
-					printf("\trepeat: %hu, patternLength: %hu\n", repeatCount, patternLength);
+					printf("\trepeat: %hu, bitmapByteCount: %hu\n", repeatCount, bitmapByteCount);
 				}
 				else
 				{
-					allocByte = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+					startOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 					pOffset += sizeof(uint16_t);
 
-					patternLength = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+					bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 					pOffset += sizeof(uint16_t);
-					pOffset += patternLength;
+					pOffset += bitmapByteCount;
 
-					printf("\trepeat: %hu, allocByte: %hu, patternLength: %hu\n", repeatCount, allocByte, patternLength);
+					printf("\trepeat: %hu, startOffset: %hu, bitmapByteCount: %hu\n", repeatCount, startOffset, bitmapByteCount);
 				}
 			}
 		}
@@ -248,7 +247,8 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 
-	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
 
 	return 0;
 }
