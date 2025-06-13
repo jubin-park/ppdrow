@@ -237,32 +237,45 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				}
 				else
 				{
+					short keepOffset = 0;
 					--repeatCount;
 					for (uint16_t repeat = 1; repeat <= repeatCount; ++repeat)
 					{
-						blankOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+						blankOffset = *reinterpret_cast<uint16_t*>(pOffset);
 						pOffset += sizeof(uint16_t);
 
 						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 						pOffset += sizeof(uint16_t);
 
-						char blank = 192;
+						if (repeat == 1)
+						{
+							keepOffset = blankOffset;
+						}
+						else
+						{
+							blankOffset += keepOffset;
+						}
+
+						short frontBlank = 0xf81f;
 						for (int i = 0; i < blankOffset; ++i)
 						{
-							fwrite(&blank, 1, 1, pOutput);
+							fwrite(&frontBlank, sizeof(frontBlank), 1, pOutput);
 						}
 						fwrite(pOffset, 1, bitmapByteCount, pOutput);
-						for (int i = 0; i < blankOffset; ++i)
+
+						short tailBlank = 0x07e0;
+						int tailOffset = pJSFInfoHeader->Width2 - blankOffset - bitmapByteCount / 2;
+						for (int i = 0; i < tailOffset; ++i)
 						{
-							fwrite(&blank, 1, 1, pOutput);
-						}		
+							fwrite(&tailBlank, sizeof(tailBlank), 1, pOutput);
+						}
 
 						pOffset += bitmapByteCount;
 
 						sumBytes += bitmapByteCount;
 						//sumBytes += blankOffset;
 
-						printf("\trepeat: %hu/%hu, blankOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, blankOffset, bitmapByteCount);
+						printf("\trepeat: %hu/%hu, blankOffset: %hu, bitmapBytes: %hu, tailOffset: %hu\n", repeat, repeatCount, blankOffset, bitmapByteCount, tailOffset);
 					}
 				}
 			}
@@ -286,9 +299,13 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 	AnalyzeJSF(L"C:\\wordpp\\ani\\btn108.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
 	//AnalyzeJSF(L"C:\\wordpp\\ani\\ui_shop.jsf");
-	
+	AnalyzeJSF(L"C:\\wordpp\\ani\\3000\\3000.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\bobj001.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem000.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem001.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
 
 	return 0;
 }
