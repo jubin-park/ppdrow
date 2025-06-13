@@ -168,6 +168,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	uint16_t repeatCount;
 	uint16_t startOffset;
 	uint16_t bitmapByteCount;
+	uint32_t sum;
 
 	do
 	{
@@ -192,6 +193,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
+			sum = 0;
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
 			pOffset += sizeof(JSFInfoHeader);
 			pEnd = pOffset + pJSFInfoHeader->WordCount * 2;
@@ -221,14 +223,17 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				}
 				else
 				{
-					startOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
-					pOffset += sizeof(uint16_t);
+					for (uint16_t repeat = 1; repeat < repeatCount; ++repeat)
+					{
+						startOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+						pOffset += sizeof(uint16_t);
 
-					bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
-					pOffset += sizeof(uint16_t);
-					pOffset += bitmapByteCount;
+						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+						pOffset += sizeof(uint16_t);
+						pOffset += bitmapByteCount;
 
-					printf("\trepeat: %hu, startOffset: %hu, bitmapBytes: %hu\n", repeatCount, startOffset, bitmapByteCount);
+						printf("\trepeat: %hu/%hu, startOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, startOffset, bitmapByteCount);
+					}
 				}
 			}
 		}
@@ -247,8 +252,8 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
 
 	return 0;
 }
