@@ -166,7 +166,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	int8_t* pEnd = 0;
 
 	uint16_t repeatCount;
-	uint16_t startOffset;
+	uint16_t tailOffset;
 	uint16_t bitmapByteCount;
 
 	do
@@ -224,14 +224,14 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 					--repeatCount;
 					for (uint16_t repeat = 1; repeat <= repeatCount; ++repeat)
 					{
-						startOffset = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+						tailOffset = *reinterpret_cast<uint16_t*>(pOffset) * 4;
 						pOffset += sizeof(uint16_t);
 
 						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
 						pOffset += sizeof(uint16_t);
 						pOffset += bitmapByteCount;
 
-						printf("\trepeat: %hu/%hu, startOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, startOffset, bitmapByteCount);
+						printf("\trepeat: %hu/%hu, tailOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, tailOffset, bitmapByteCount);
 					}
 				}
 			}
