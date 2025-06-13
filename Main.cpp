@@ -168,6 +168,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	uint16_t repeatCount;
 	uint16_t tailOffset;
 	uint16_t bitmapByteCount;
+	uint32_t sumBytes;
 
 	do
 	{
@@ -192,15 +193,18 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
+			sumBytes = 0;
+
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
 			pOffset += sizeof(JSFInfoHeader);
 			pEnd = pOffset + pJSFInfoHeader->WordCount * 2;
 
 			printf("[%u]\t%u, %u, %u, %u, %hu"
-				"\tW1: %4u, H1: %4u, Words: %4u, W2: %4hu, H2: %4hu (bytes: %hu)\n",
+				"\tW1: %4u, H1: %4u, Words: %4u, W2: %hu x H2: %hu = %u, (bytes: %hu)\n",
 				infoIndex,
 				pJSFInfoHeader->Unknown11, pJSFInfoHeader->Unknown12, pJSFInfoHeader->Unknown13, pJSFInfoHeader->Unknown14, pJSFInfoHeader->Unknown15,
 				pJSFInfoHeader->Width1, pJSFInfoHeader->Height1, pJSFInfoHeader->WordCount, pJSFInfoHeader->Width2, pJSFInfoHeader->Height2,
+				pJSFInfoHeader->Width2 * pJSFInfoHeader->Height2,
 				pJSFInfoHeader->WordCount * 2
 			);
 
@@ -217,6 +221,8 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 					bitmapByteCount = pJSFInfoHeader->Width2 * 2;
 					pOffset += bitmapByteCount;
 
+					sumBytes += bitmapByteCount;
+
 					printf("\trepeat: %hu, bitmapByteCount: %hu\n", repeatCount, bitmapByteCount);
 				}
 				else
@@ -231,10 +237,15 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 						pOffset += sizeof(uint16_t);
 						pOffset += bitmapByteCount;
 
+						sumBytes += bitmapByteCount;
+						//sumBytes += tailOffset;
+
 						printf("\trepeat: %hu/%hu, tailOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, tailOffset, bitmapByteCount);
 					}
 				}
 			}
+
+			printf("sumBytes = %d\n", sumBytes);
 		}
 
 	} while (0);
@@ -251,8 +262,8 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
 
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
+	AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
+	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn111.jsf");
 
 	return 0;
 }
