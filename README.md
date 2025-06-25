@@ -5,8 +5,8 @@
 ## Usage
 
 1. 버블슈터 클라이언트 다운로드 및 설치
-* https://cafe.naver.com/shooter77/4330
-* https://cafe.naver.com/shooter77/4331
+   * https://cafe.naver.com/shooter77/4330 (1/2)
+   * https://cafe.naver.com/shooter77/4331 (2/2)
 
 2. cmd.exe를 **관리자 권한**으로 실행
 
