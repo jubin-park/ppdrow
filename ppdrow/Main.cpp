@@ -196,7 +196,7 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
 			char imgFileName[512];
-			sprintf_s(imgFileName, sizeof(imgFileName), "samples/%s_%02d", pJSFFileHeader->FileName, infoIndex);
+			sprintf_s(imgFileName, sizeof(imgFileName), "../samples/%s_%02d", pJSFFileHeader->FileName, infoIndex);
 			FILE* pOutput = nullptr;
 			fopen_s(&pOutput, imgFileName, "wb");
 			if (pOutput == nullptr)
