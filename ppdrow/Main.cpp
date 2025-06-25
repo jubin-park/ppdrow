@@ -355,6 +355,11 @@ void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height
 
 	area = width * height;
 	paBGR888 = new uint8_t[biSizeImage];
+	if (paBGR888 == nullptr)
+	{
+		return;
+	}
+
 	pBGR888Iter = reinterpret_cast<uint8_t*>(paBGR888);
 	pRGB565Iter = paRGB565 + area;
 
