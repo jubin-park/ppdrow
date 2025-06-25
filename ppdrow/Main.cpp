@@ -388,7 +388,6 @@ void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height
 
 	if (pBitmapFile == nullptr)
 	{
-		wprintf(L"open wb error");
 		delete[] paBGR888;
 		return;
 	}
