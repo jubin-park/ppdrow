@@ -1,29 +1,15 @@
+#include <cassert>
 #include <cstdio>
 #include <cstdint>
 #include <clocale>
+#include <shlwapi.h>
+#include <strsafe.h>
+#include <pathcch.h>
 
-/*
-struct JafFixedHeader {
-    u8 description[53];
-    u8 filename[200];
-    u32 count;
-};
-struct JafDataHeader
-{
-    u32 unknown1;
-    s8 zero_based_index_str[256];
-};
-struct JafNumHeader
-{
-    s32 OneBasedNumber;
-    s32 Unknown3;
-    s32 Unknown4;
-};
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Pathcch.lib")
 
-JafFixedHeader test @ 0x00;
-JafDataHeader test2 @ 257;
-JafNumHeader test3[10] @ 517;
-*/
+typedef uint16_t RGB565;
 
 #pragma pack(push, 1)
 struct JAFFileHeader
@@ -70,35 +56,31 @@ struct JSFInfoHeader
 	uint32_t Unknown13;
 	uint32_t Unknown14;
 	uint16_t Unknown15;
-	uint32_t Width1;
-	uint32_t Height1;
+	uint32_t Unknown16;
+	uint32_t Unknown17;
 	uint32_t WordCount;
-	uint16_t Width2;
-	uint16_t Height2;
+	uint16_t Width;
+	uint16_t Height;
 };
 #pragma pack(pop)
 
-/*
-struct JSFFixedHeader {
-	u8 description[50];
-	u8 filename[200];
-	u32 spriteCount;
-	u32 unknown1;
-	u32 unknown2;
-	u32 unknown3;
-	u32 unknown4;
-	u16 unknown5;
-	u32 width1;
-	u32 height1;
-	u32 unknown8;
-	u16 width2;
-	u16 height2;
+struct BGR888
+{
+	uint8_t Blue;
+	uint8_t Green;
+	uint8_t Red;
 };
-JSFFixedHeader test @ 0x00;
-*/
+
+enum : RGB565
+{
+	BLANK_COLOR1 = 0xf81f,
+	BLANK_COLOR2 = 0xf81f//0x07e0
+};
 
 void AnalyzeJAF(const wchar_t* pWszFilePath);
-void AnalyzeJSF(const wchar_t* pWszFilePath);
+void ConvertJSFToBMP(const wchar_t* pWszFilePath);
+void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height, const RGB565* const paRGB565);
+void GetFileNameWithoutExtension(const wchar_t* const pWszFilePath, wchar_t* pDstFileName);
 
 void AnalyzeJAF(const wchar_t* pWszFilePath)
 {
@@ -111,6 +93,9 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 	JAFInfoHeader* pJAFInfoHeader;
 	JAFFrameHeader* pJAFFrameHeader;
 	int8_t* pOffset = 0;
+	size_t len;
+	wchar_t wFileName[MAX_PATH];
+	wchar_t wTagName[MAX_PATH];
 
 	do
 	{
@@ -131,21 +116,25 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 		pJAFFileHeader = reinterpret_cast<JAFFileHeader*>(pOffset);
 		pOffset += sizeof(JAFFileHeader);
 
-		printf("JSF fileName: \"%s\", infoCount: %d\n", pJAFFileHeader->FileName, pJAFFileHeader->InfoCount);
+		mbstowcs_s(&len, wFileName, MAX_PATH, (char*)pJAFFileHeader->FileName, MAX_PATH);
+		wprintf(L"JSF fileName: \"%s\", infoCount: %d\n", wFileName, pJAFFileHeader->InfoCount);
+
 		for (uint32_t infoIndex = 0; infoIndex < pJAFFileHeader->InfoCount; ++infoIndex)
 		{
 			pJAFInfoHeader = (JAFInfoHeader*)pOffset;
-			printf("\ttag: \"%s\", frameCount: %3d\n", pJAFInfoHeader->TagName, pJAFInfoHeader->FrameCount);
+
+			mbstowcs_s(&len, wTagName, MAX_PATH, (char*)pJAFInfoHeader->TagName, MAX_PATH);
+			wprintf(L"\ttag: \"%s\", frameCount: %3d\n", wTagName, pJAFInfoHeader->FrameCount);
 			pOffset += sizeof(JAFInfoHeader);
 
 			for (uint32_t sliceIndex = 0; sliceIndex < pJAFInfoHeader->FrameCount; ++sliceIndex)
 			{
 				pJAFFrameHeader = (JAFFrameHeader*)pOffset;
-				printf("\t\tnum: %3u, Unknown3: %u, Unknown4: %u\n",pJAFFrameHeader->OneBasedNumber, pJAFFrameHeader->Unknown3, pJAFFrameHeader->Unknown4);
+				wprintf(L"\t\tnum: %3u, Unknown3: %u, Unknown4: %u\n",pJAFFrameHeader->OneBasedNumber, pJAFFrameHeader->Unknown3, pJAFFrameHeader->Unknown4);
 				pOffset += sizeof(JAFFrameHeader);
 			}
 		}
-		printf("------------------------------------------------------\n\n");
+		wprintf(L"------------------------------------------------------\n\n");
 
 
 	} while (0);
@@ -153,8 +142,12 @@ void AnalyzeJAF(const wchar_t* pWszFilePath)
 	delete[] paBuf;
 }
 
-void AnalyzeJSF(const wchar_t* pWszFilePath)
+void ConvertJSFToBMP(const wchar_t* pWszFilePath)
 {
+	wchar_t fileNameWithoutExtension[MAX_PATH];
+	wchar_t bmpFileName[MAX_PATH];
+	wchar_t directoryPath[MAX_PATH];
+
 	FILE* pFile = nullptr;
 	errno_t err;
 	uint32_t bufSize;
@@ -164,13 +157,18 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 	JSFInfoHeader* pJSFInfoHeader;
 	int8_t* pOffset = 0;
 	int8_t* pEnd = 0;
+	uint32_t area;
 
 	uint16_t repeatCount;
 	uint16_t baseOffset;
 	uint16_t bitmapByteCount;
 
-	short frontBlank = 0xf81f;
-	short tailBlank = 0x07e0;
+	RGB565* paRGB565 = nullptr;
+	RGB565* pRGB565Iter;
+
+	StringCchCopyW(directoryPath, _countof(directoryPath), pWszFilePath);
+	PathCchRemoveFileSpec(directoryPath, _countof(directoryPath));
+	GetFileNameWithoutExtension(pWszFilePath, fileNameWithoutExtension);
 
 	do
 	{
@@ -186,39 +184,39 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 
 		paBuf = new int8_t[bufSize];
 		readByteCount = static_cast<uint32_t>(fread_s(paBuf, bufSize, sizeof(int8_t), bufSize, pFile));
+		fclose(pFile);
+
 		pOffset = paBuf;
 
 		pJSFFileHeader = reinterpret_cast<JSFFileHeader*>(pOffset);
 		pOffset += sizeof(JSFFileHeader);
 
-		printf("BMP fileName: \"%s\", infoCount: %d\n", pJSFFileHeader->FileName, pJSFFileHeader->InfoCount);
+		wchar_t wFileName[MAX_PATH];
+		size_t len;
+		mbstowcs_s(&len, wFileName, MAX_PATH, (char*)pJSFFileHeader->FileName, MAX_PATH);
 
 		for (uint32_t infoIndex = 0; infoIndex < pJSFFileHeader->InfoCount; ++infoIndex)
 		{
-			char imgFileName[512];
-			sprintf_s(imgFileName, sizeof(imgFileName), "../samples/%s_%02d", pJSFFileHeader->FileName, infoIndex);
-			FILE* pOutput = nullptr;
-			fopen_s(&pOutput, imgFileName, "wb");
-			if (pOutput == nullptr)
-			{
-				break;
-			}
+			StringCbPrintfW(bmpFileName, sizeof(bmpFileName), L"%s\\%s_%03u.bmp", directoryPath, fileNameWithoutExtension, infoIndex);
+
+			wprintf(L"\n-- Convert \"%s\" -> \"%s\", SpriteCount: %d --\n", pWszFilePath, bmpFileName, pJSFFileHeader->InfoCount);
 
 			pJSFInfoHeader = reinterpret_cast<JSFInfoHeader*>(pOffset);
 			pOffset += sizeof(JSFInfoHeader);
-			pEnd = pOffset + pJSFInfoHeader->WordCount * 2;
+			pEnd = pOffset + pJSFInfoHeader->WordCount * sizeof(RGB565);
+			area = pJSFInfoHeader->Width * pJSFInfoHeader->Height;
 
-			printf("[%u]\t%u, %u, %u, %u, %hu"
-				"\tW1: %4u, H1: %4u, Words: %4u, W2: %hu x H2: %hu = %u, (bytes: %hu)\n",
+			/*
+			wprintf(L"[%u]\t%u, %u, %u, %u, %hu, %u, %u"
+				"\tWords: %4u, W: %hu x H: %hu = %u, (bytes: %zu)\n",
 				infoIndex,
-				pJSFInfoHeader->Unknown11, pJSFInfoHeader->Unknown12, pJSFInfoHeader->Unknown13, pJSFInfoHeader->Unknown14, pJSFInfoHeader->Unknown15,
-				pJSFInfoHeader->Width1, pJSFInfoHeader->Height1, pJSFInfoHeader->WordCount, pJSFInfoHeader->Width2, pJSFInfoHeader->Height2,
-				pJSFInfoHeader->Width2 * pJSFInfoHeader->Height2,
-				pJSFInfoHeader->WordCount * 2
+				pJSFInfoHeader->Unknown11, pJSFInfoHeader->Unknown12, pJSFInfoHeader->Unknown13, pJSFInfoHeader->Unknown14, pJSFInfoHeader->Unknown15, pJSFInfoHeader->Unknown16, pJSFInfoHeader->Unknown17,
+				pJSFInfoHeader->WordCount, pJSFInfoHeader->Width, pJSFInfoHeader->Height, area, pJSFInfoHeader->WordCount * sizeof(RGB565)
 			);
-
-			fwrite(&pJSFInfoHeader->Width2, 1, sizeof(uint16_t), pOutput);
-			fwrite(&pJSFInfoHeader->Height2, 1, sizeof(uint16_t), pOutput);
+			*/
+			
+			paRGB565 = new RGB565[area];
+			pRGB565Iter = paRGB565;
 
 			while (pOffset < pEnd)
 			{
@@ -226,16 +224,20 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 				pOffset += sizeof(uint16_t);
 				if (repeatCount == 0)
 				{
-					continue;
+					for (int i = 0; i < pJSFInfoHeader->Width; ++i)
+					{
+						*pRGB565Iter++ = BLANK_COLOR1;
+					}
 				}
 				else if (repeatCount == 1)
 				{
-					bitmapByteCount = pJSFInfoHeader->Width2 * 2;
+					bitmapByteCount = pJSFInfoHeader->Width * sizeof(RGB565);
 
-					fwrite(pOffset, 1, bitmapByteCount, pOutput);
+					memcpy(pRGB565Iter, pOffset, bitmapByteCount);
+					pRGB565Iter += pJSFInfoHeader->Width;
 					pOffset += bitmapByteCount;
 
-					printf("\trepeat: %hu, bitmapByteCount: %hu\n", repeatCount, bitmapByteCount);
+					//wprintf("\trepeat: %hu, bitmapByteCount: %hu\n", repeatCount, bitmapByteCount);
 				}
 				else
 				{
@@ -248,38 +250,50 @@ void AnalyzeJSF(const wchar_t* pWszFilePath)
 						baseOffset = *reinterpret_cast<uint16_t*>(pOffset);
 						pOffset += sizeof(uint16_t);
 
-						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * 2;
+						bitmapByteCount = *reinterpret_cast<uint16_t*>(pOffset) * sizeof(RGB565);
 						pOffset += sizeof(uint16_t);
 
 						for (int i = 0; i < baseOffset; ++i)
 						{
-							fwrite(&frontBlank, sizeof(frontBlank), 1, pOutput);
+							*pRGB565Iter++ = BLANK_COLOR1;
 						}
-						fwrite(pOffset, 1, bitmapByteCount, pOutput);
+						memcpy(pRGB565Iter, pOffset, bitmapByteCount);
+						pRGB565Iter += bitmapByteCount / sizeof(RGB565);
+						pOffset += bitmapByteCount;
 
 						sumOffset += baseOffset;
 						sumLength += bitmapByteCount;
 
-						pOffset += bitmapByteCount;
-
 						if (repeat == repeatCount)
 						{
-							int tailOffset = pJSFInfoHeader->Width2 - sumOffset - sumLength / 2;
+							int tailOffset = pJSFInfoHeader->Width - sumOffset - sumLength / sizeof(RGB565);
 							for (int i = 0; i < tailOffset; ++i)
 							{
-								fwrite(&tailBlank, sizeof(tailBlank), 1, pOutput);
+								*pRGB565Iter++ = BLANK_COLOR2;
 							}
-							printf("\trepeat: %hu/%hu, baseOffset: %hu, bitmapBytes: %hu, tailOffset: %hu\n", repeat, repeatCount, baseOffset, bitmapByteCount, tailOffset);
+							//wprintf("\trepeat: %hu/%hu, baseOffset: %hu, bitmapWords: %hu, tailOffset: %hu\n", repeat, repeatCount, baseOffset, bitmapByteCount / 2, tailOffset);
 						}
 						else
 						{
-							printf("\trepeat: %hu/%hu, baseOffset: %hu, bitmapBytes: %hu\n", repeat, repeatCount, baseOffset, bitmapByteCount);
+							//wprintf("\trepeat: %hu/%hu, baseOffset: %hu, bitmapWords: %hu\n", repeat, repeatCount, baseOffset, bitmapByteCount / 2);
 						}
 					}
 				}
 			}
 
-			fclose(pOutput);
+			if (pOffset != pEnd)
+			{
+				__debugbreak();
+			}
+
+			if (pRGB565Iter - paRGB565 != area)
+			{
+				__debugbreak();
+			}
+
+			SaveBMP(bmpFileName, pJSFInfoHeader->Width, pJSFInfoHeader->Height, paRGB565);
+
+			delete[] paRGB565;
 		}
 
 	} while (0);
@@ -295,14 +309,125 @@ int main()
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
 	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
 
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\btn108.jsf");
-	//AnalyzeJSF(L"C:\\wordpp\\ani\\cursor.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\ui_shop.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\3000\\3000.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\bobj001.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem000.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\bossitem001.jsf");
-	AnalyzeJSF(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\btn108.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\cursor.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\ui_shop.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\3000\\3000.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bobj001.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bossitem000.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bossitem001.jsf");
+	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
+
+	wchar_t path[1024];
+
+	while (fgetws(path, _countof(path), stdin) != nullptr)
+	{
+		size_t len = wcsnlen_s(path, _countof(path));
+		path[--len] = L'\0';
+		if (len > 0)
+		{
+			ConvertJSFToBMP(path);
+		}
+	}
 
 	return 0;
+}
+
+void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height, const RGB565* const paRGB565)
+{
+	assert(pFileName != nullptr);
+	assert(width > 0);
+	assert(height > 0);
+	assert(paRGB565 != nullptr);
+
+	int stride = ((((width * 24) + 31) & ~31) >> 3);
+	int biSizeImage = abs(height) * stride;
+
+	LONG area;
+	uint8_t* paBGR888 = nullptr;
+	uint8_t* pBGR888Iter;
+	const RGB565* pRGB565Iter;
+	RGB565 rgb565;
+	BGR888 bgr888;
+	FILE* pBitmapFile;
+	BITMAPFILEHEADER bmFileHeader;
+	BITMAPINFOHEADER bmInfoHeader;
+
+	area = width * height;
+	paBGR888 = new uint8_t[biSizeImage];
+	pBGR888Iter = reinterpret_cast<uint8_t*>(paBGR888);
+	pRGB565Iter = paRGB565 + area;
+
+	LONG x;
+	BGR888 padding = { 0, 0, 0 };
+
+	for (LONG y = 0; y < height; ++y)
+	{
+		pRGB565Iter -= width;
+		for (x = 0; x < width; ++x)
+		{
+			rgb565 = pRGB565Iter[x];
+
+			bgr888.Blue = (((rgb565 & 0x1F) * 527) + 23) >> 6;
+			bgr888.Green = ((((rgb565 >> 5) & 0x3F) * 259) + 33) >> 6;
+			bgr888.Red = ((((rgb565 >> 11) & 0x1F) * 527) + 23) >> 6;
+
+			*(BGR888*)pBGR888Iter = bgr888;
+			pBGR888Iter += sizeof(bgr888);
+		}
+		pBGR888Iter += stride - width * 3;
+	}
+
+	pBitmapFile = nullptr;
+	_wfopen_s(&pBitmapFile, pFileName, L"wb");
+
+	if (pBitmapFile == nullptr)
+	{
+		wprintf(L"open wb error");
+		delete[] paBGR888;
+		return;
+	}
+	
+	bmFileHeader.bfType = 0x4D42;
+	bmFileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	bmFileHeader.bfSize = bmFileHeader.bfOffBits + (biSizeImage * sizeof(BGR888));
+	bmFileHeader.bfReserved1 = 0;
+	bmFileHeader.bfReserved2 = 0;
+	
+	bmInfoHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmInfoHeader.biWidth = width;
+	bmInfoHeader.biHeight = height;
+	bmInfoHeader.biPlanes = 1;
+	bmInfoHeader.biBitCount = 8 * sizeof(BGR888);
+	bmInfoHeader.biCompression = 0;
+	bmInfoHeader.biSizeImage = 0;
+	bmInfoHeader.biXPelsPerMeter = 0;
+	bmInfoHeader.biYPelsPerMeter = 0;
+	bmInfoHeader.biClrUsed = 0;
+	bmInfoHeader.biClrImportant = 0;
+
+	fwrite(&bmFileHeader, sizeof(bmFileHeader), 1, pBitmapFile);
+	fwrite(&bmInfoHeader, sizeof(bmInfoHeader), 1, pBitmapFile);
+	fwrite(paBGR888, 1, biSizeImage, pBitmapFile);
+
+	fclose(pBitmapFile);
+
+	delete[] paBGR888;
+}
+
+void GetFileNameWithoutExtension(const wchar_t* pWszFilePath, wchar_t* pDstFileName)
+{
+	const wchar_t* pFileName;
+	const wchar_t* pFileExt;
+	const wchar_t* pSrc;
+
+	pFileName = PathFindFileNameW(pWszFilePath);
+	pFileExt = PathFindExtensionW(pWszFilePath);
+	pSrc = pFileName;
+
+	while (pSrc < pFileExt)
+	{
+		*pDstFileName++ = *pSrc++;
+	}
+	*pDstFileName = L'\0';
 }
