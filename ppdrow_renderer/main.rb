@@ -13,7 +13,7 @@ class Welcome < (Example rescue Gosu::Window)
     @button_height = button_size[2] + (button_size[3] << 8)
     @button_data = button_file.read.bytes
 
-    cursor_file = File.new('../기본몸.bmp_00', 'rb')
+    cursor_file = File.new('../samples/기본몸.bmp_00', 'rb')
     cursor_size = cursor_file.read(4).bytes
     @cursor_width = cursor_size[0] + (cursor_size[1] << 8)
     @cursor_height = cursor_size[2] + (cursor_size[3] << 8)
