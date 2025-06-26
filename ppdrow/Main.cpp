@@ -303,21 +303,6 @@ int main()
 {
 	_wsetlocale(LC_ALL, L"ko-KR");
 
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\arrow.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\boss\\boss001a.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\3000\\3100.jaf");
-	//AnalyzeJAF(L"C:\\wordpp\\ani\\cursor.jaf");
-
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\btn108.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\cursor.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\ui_shop.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\3000\\3000.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bobj001.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bossitem000.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\bossitem001.jsf");
-	//ConvertJSFToBMP(L"C:\\wordpp\\ani\\boss\\collection000.jsf");
-
 	wchar_t path[1024];
 
 	while (fgetws(path, _countof(path), stdin) != nullptr)
@@ -352,6 +337,9 @@ void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height
 	FILE* pBitmapFile;
 	BITMAPFILEHEADER bmFileHeader;
 	BITMAPINFOHEADER bmInfoHeader;
+	BGR888 padding = { 0, 0, 0 };
+	LONG x;
+	LONG y;
 
 	area = width * height;
 	paBGR888 = new uint8_t[biSizeImage];
@@ -363,10 +351,7 @@ void SaveBMP(const wchar_t* const pFileName, const LONG width, const LONG height
 	pBGR888Iter = reinterpret_cast<uint8_t*>(paBGR888);
 	pRGB565Iter = paRGB565 + area;
 
-	LONG x;
-	BGR888 padding = { 0, 0, 0 };
-
-	for (LONG y = 0; y < height; ++y)
+	for (y = 0; y < height; ++y)
 	{
 		pRGB565Iter -= width;
 		for (x = 0; x < width; ++x)
